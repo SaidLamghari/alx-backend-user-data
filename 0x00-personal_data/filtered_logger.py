@@ -116,3 +116,27 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
         database=os.getenv('PERSONAL_DATA_DB_NAME')
     )
     return var_db
+
+
+def main() -> None:
+    """
+    Main function to retrieve
+    and log user data from the database.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM users;")
+    field_names = [desc[0] for desc in cursor.description]
+    logger = get_logger()
+
+    for rw_cur in cursor:
+        rw_cur_data = {field_names[i]: rw_cur[i] for i in range(len(rw_cur))}
+        message = '; '.join([f"{k}={v}" for k, v in rw_cur_data.items()])
+        logger.info(message)
+
+    cursor.close()
+    db.close()
+
+
+if __name__ == "__main__":
+    main()
