@@ -5,11 +5,12 @@ data with secure logging.
 Autor : SAID LAMGHARI
 """
 
+import re
+from typing import List
+import logging
 import mysql.connector
 import os
-import re
-import logging
-from typing import List, Tuple
+from typing import Tuple
 
 
 def filter_datum(fields: List[str],
