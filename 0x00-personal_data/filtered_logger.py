@@ -5,11 +5,11 @@ data with secure logging.
 Autor : SAID LAMGHARI
 """
 
-import mysql.connector
 import os
 import re
 import logging
 from typing import List, Tuple
+import mysql.connector
 
 
 def filter_datum(fields: List[str],
@@ -88,15 +88,31 @@ def get_logger() -> logging.Logger:
     return logger
 
 
-
 def get_db() -> mysql.connector.connection.MySQLConnection:
     """
-    Ctest
+    Establish and return a connection to the MySQL
+    database using environment variables.
+
+    This function retrieves database connection
+    credentials from environment variables and
+    uses them to connect to the MySQL database.
+    The connection object is then returned.
+
+    Returns:
+        mysql.connector.connection.MySQLConnection:
+        The database connection object.
+
+    Raises:
+        mysql.connector.Error: If there is an error
+        connecting to the database.
     """
-    coctor = mysql.connector.connect(
-        host=os.getenv('PERSONAL_DATA_DB_HOST'),
-        database=os.getenv('PERSONAL_DATA_DB_NAME'),
-        user=os.getenv('PERSONAL_DATA_DB_USERNAME'),
-        password=os.getenv('PERSONAL_DATA_DB_PASSWORD')
+    # Retrieve database credentials from
+    # environment variables with default values
+    # Establish and return a connection to the database
+    var_db = mysql.connector.connect(
+        user=os.getenv('PERSONAL_DATA_DB_USERNAME', 'root'),
+        password=os.getenv('PERSONAL_DATA_DB_PASSWORD', ''),
+        host=os.getenv('PERSONAL_DATA_DB_HOST', 'localhost'),
+        database=os.getenv('PERSONAL_DATA_DB_NAME')
     )
-    return coctor
+    return var_db
