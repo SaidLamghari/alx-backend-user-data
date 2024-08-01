@@ -5,6 +5,8 @@ data with secure logging.
 Autor : SAID LAMGHARI
 """
 
+import mysql.connector
+import os
 import re
 import logging
 from typing import List, Tuple
@@ -94,8 +96,6 @@ def get_db() -> 'mysql.connector.connection.MySQLConnection':
     Returns:
         mysql.connector.connection.MySQLConnection: The database connection.
     """
-    import mysql.connector
-    import os
     return mysql.connector.connect(
         user=os.getenv("PERSONAL_DATA_DB_USERNAME", "root"),
         password=os.getenv("PERSONAL_DATA_DB_PASSWORD", ""),
