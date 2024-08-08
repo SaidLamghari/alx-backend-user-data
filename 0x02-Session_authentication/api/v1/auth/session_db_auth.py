@@ -1,133 +1,116 @@
 #!/usr/bin/env python3
-"""Module d'authentification
-par session avec expiration
-et support de stockage pour l'API.
+"""Module d'authentification de session avec expiration
+et prise en charge du stockage pour l'API.
+Auteur SAID LAMGHARI
 """
 from flask import request
-from typing import Optional
 
 from models.user_session import UserSession
-from .session_exp_auth import SessionExpAuth
+
 from datetime import datetime, timedelta
 
 
+from .session_exp_auth import SessionExpAuth
+
+
 class SessionDBAuth(SessionExpAuth):
-    """Classe d'authentification par session avec
-    expiration et support de stockage.
+    """Classe d'authentification de session
+    avec expiration et prise en charge du stockage.
     """
 
-    def create_session(self, user_id: Optional[str] = None) -> Optional[str]:
+    def create_session(self,
+                       user_id=None) -> str:
         """Crée et stocke un identifiant de session pour l'utilisateur.
 
         Args:
-            user_id (str, optionnel): L'identifiant de
-            l'utilisateur pour lequel créer la session.
+            user_id (str): L'identifiant de l'utilisateur
+            pour lequel créer la session.
 
-        Retourne:
-            str: L'identifiant de session créé si
-            la session a été stockée avec succès.
-            None: Si la session ne peut pas être créée ou stockée.
+        Returns:
+            str: L'identifiant de session créé.
         """
-        # Crée un identifiant de session en
-        # utilisant la méthode de la classe parente
-        session_id = super().create_session(user_id)
-        if isinstance(session_id, str):
-            # Crée une nouvelle instance de UserSession avec
-            # l'identifiant de l'utilisateur et de la session
-            user_session = UserSession(user_id=user_id, session_id=session_id)
-            try:
-                # Tente de sauvegarder la session dans la base de données
-                user_session.save()
-            except Exception as e:
-                # Gère les exceptions lors de la sauvegarde
-                # (journalisation ou autres actions peuvent être ajoutées)
-                print(f"Erreur lors de la sauvegarde de la session : {e}")
-                return None
-            return session_id
-        return None
+        # Appelle la méthode de la classe parente pour créer une session
+        sessionforid = super().create_session(user_id)
+        if type(sessionforid) == str:
+            # Prépare les arguments pour créer une instance de UserSession
+            kwargs = {
+                'user_id': user_id,
+                'session_id': sessionforid,
+            }
+            # Crée et enregistre une nouvelle session
+            # utilisateur dans la base de données
+            user_session = UserSession(**kwargs)
+            user_session.save()
+            return sessionforid
 
     def user_id_for_session_id(self,
-                               session_id: Optional[str] = None
-                               ) -> Optional[str]:
-        """Récupère l'identifiant de l'utilisateur
-        associé à un identifiant de session donné.
+                               session_id=None):
+        """Récupère l'identifiant de l'utilisateur associé
+        à un identifiant de session donné.
 
         Args:
-            session_id (str, optionnel): L'identifiant de
-            session pour lequel récupérer l'identifiant de l'utilisateur.
+            session_id (str): L'identifiant de session pour
+            lequel obtenir l'identifiant utilisateur.
 
-        Retourne:
-            str: L'identifiant de l'utilisateur
-            si la session est valide et non expirée.
-            None: Si la session est invalide ou
-            expirée, ou si une erreur se produit.
+        Returns:
+            str: L'identifiant de l'utilisateur associé à la session,
+            ou None si la session est invalide ou expirée.
         """
-        if not session_id:
-            return None
-
         try:
-            # Recherche les sessions dans la base de
-            # données avec l'identifiant de session fourni
-            sessions = UserSession.search({'session_id': session_id})
-        except Exception as e:
-            # Gère les exceptions lors de la recherche
-            # (journalisation ou autres actions peuvent être ajoutées)
-            print(f"Erreur lors de la recherche de la session : {e}")
+            # Recherche les sessions avec l'identifiant fourni
+            v_sessons = UserSession.search({'session_id': session_id})
+        except Exception:
+            # En cas d'erreur lors de la recherche, retourne None
             return None
 
-        if not sessions:
+        # Vérifie si aucune session n'a été trouvée
+        var_len = len(v_sessons)
+
+        if var_len <= 0:
             return None
 
-        # Calcule le délai d'expiration de la session
-        # Date et heure actuelles
-        current_dtetime = datetime.now()
-        # Durée de la session en tant que timedelta
-        session_duration = timedelta(seconds=self.session_duration)
-        # Date et heure d'expiration
-        expiration_dtetime = sessions[0].created_at + session_duration
+        # Récupère l'heure actuelle
+        # Calcule le temps d'expiration de la session
+        session_drtion = timedelta(seconds=self.session_duration)
 
-        if expiration_dtetime < current_dtetime:
-            # Retourne None si la session est expirée
+        expration_dtetime = v_sessons[0].created_at + session_drtion
+
+        # Vérifie si la session est expirée
+        if expration_dtetime < datetime.now():
             return None
 
-        return sessions[0].user_id
+        # Retourne l'identifiant de
+        # l'utilisateur associé à la session
+        return v_sessons[0].user_id
 
-    def destroy_session(self, request: Optional[request] = None) -> bool:
-        """Déconnecte une session authentifiée.
+    def destroy_session(self,
+                        request=None) -> bool:
+        """Détruit une session authentifiée.
 
         Args:
-            request (flask.Request, optionnel):
-            La requête HTTP contenant le cookie de session.
+            request (Request): La requête
+            contenant le cookie de session.
 
-        Retourne:
-            bool: True si la session a été supprimée
-            avec succès, False sinon.
+        Returns:
+            bool: True si la session a été
+            détruite avec succès, sinon False.
         """
-        # Récupère l'identifiant de session à partir du cookie de la requête
-        session_id = self.session_cookie(request)
-        if not session_id:
-            return False
-
+        # Récupère l'identifiant de la session
+        # depuis le cookie de la requête
+        sessionforid = self.session_cookie(request)
         try:
-            # Recherche les sessions dans la base de données
-            # avec l'identifiant de session fourni
-            sessions = UserSession.search({'session_id': session_id})
-        except Exception as e:
-            # Gère les exceptions lors de la recherche
-            # (journalisation ou autres actions peuvent être ajoutées)
-            print(f"Erreur lors de la recherche de la session : {e}")
+            # Recherche les sessions avec l'identifiant fourni
+            v_sessions = UserSession.search({'session_id': sessionforid})
+        except Exception:
+            # En cas d'erreur lors de la recherche, retourne False
             return False
 
-        if not sessions:
+        # Vérifie si aucune session n'a été trouvée
+        var_ln = len(v_sessions)
+
+        if var_ln <= 0:
             return False
 
-        try:
-            # Supprime la session trouvée de la base de données
-            sessions[0].remove()
-        except Exception as e:
-            # Gère les exceptions lors de la suppression
-            # (journalisation ou autres actions peuvent être ajoutées)
-            print(f"Erreur lors de la suppression de la session : {e}")
-            return False
-
+        # Supprime la première session trouvée
+        v_sessions[0].remove()
         return True
