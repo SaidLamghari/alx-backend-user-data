@@ -1,124 +1,100 @@
 #!/usr/bin/env python3
 """Module de routage pour l'API.
 """
-import os
-
-from os import getenv
-
-from flask_cors import (CORS, cross_origin)
-from flask import Flask, jsonify, abort, request
 
 from api.v1.views import app_views
-from api.v1.auth.session_db_auth import SessionDBAuth
 from api.v1.auth.auth import Auth
-from api.v1.auth.session_auth import SessionAuth
-
-from api.v1.auth.session_exp_auth import SessionExpAuth
-
 from api.v1.auth.basic_auth import BasicAuth
 
+import os
+from os import getenv
+from flask import Flask
+from flask import jsonify
+from flask import abort
+from flask import request
+from flask_cors import (CORS, cross_origin)
 
+
+# Création de l'application Flask
 app = Flask(__name__)
-# Enregistre les routes définies dans app_views (dans le module api.v1.views)
+
+# Enregistrement du blueprint des vues de l'API
 app.register_blueprint(app_views)
 
-# Configure CORS pour permettre les requêtes de toutes les origines sur les routes API
+# Configuration de CORS (Cross-Origin Resource Sharing) pour
+# permettre les requêtes de n'importe quelle origine
 CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
-# Initialise l'objet d'authentification basé sur le type d'authentification spécifié
+# Initialisation de la variable d'authentification
 auth = None
- # Obtient le type d'authentification
- # depuis les variables d'environnement
-auth_type = getenv('AUTH_TYPE', 'auth')
-if auth_type == 'auth':
+
+# Détermination du type d'authentification à
+# utiliser à partir des variables d'environnement
+authtpe = getenv('AUTH_TYPE', 'auth')
+if authtpe == 'auth':
     auth = Auth()
-elif auth_type == 'basic_auth':
+elif authtpe == 'basic_auth':
     auth = BasicAuth()
-elif auth_type == 'session_auth':
-    auth = SessionAuth()
-elif auth_type == 'session_exp_auth':
-    auth = SessionExpAuth()
-elif auth_type == 'session_db_auth':
-    auth = SessionDBAuth()
 
 
+# Gestionnaire d'erreur 404 - Ressource non trouvée
 @app.errorhandler(404)
 def not_found(error) -> str:
-    """
-    Gestionnaire pour les erreurs 404 (Non trouvé).
-    
-    Args:
-        error: L'erreur qui a été levée.
-    
-    Returns:
-        str: Réponse JSON avec un message d'erreur 404.
+    """Gestionnaire pour les
+    erreurs 404 - Ressource non trouvée.
     """
     return jsonify({"error": "Not found"}), 404
 
 
+# Gestionnaire d'erreur 401 - Non autorisé
 @app.errorhandler(401)
-def unauthorized(error) -> str:
-    """Gestionnaire pour les erreurs 401 (Non autorisé).
-    
-    Args:
-        error: L'erreur qui a été levée.
-    
-    Returns:
-        str: Réponse JSON avec un message d'erreur 401.
+def unauthorizedhandler(error) -> str:
+    """Gestionnaire pour les erreurs 401 - Non autorisé.
     """
     return jsonify({"error": "Unauthorized"}), 401
 
 
+# Gestionnaire d'erreur 403 - Interdit
 @app.errorhandler(403)
-def forbidden(error) -> str:
-    """Gestionnaire pour les erreurs 403 (Interdit).
-    
-    Args:
-        error: L'erreur qui a été levée.
-    
-    Returns:
-        str: Réponse JSON avec un message d'erreur 403.
+def forbiddenhandler(error) -> str:
+    """Gestionnaire pour les erreurs 403 - Interdit.
     """
     return jsonify({"error": "Forbidden"}), 403
 
 
+# Fonction appelée avant le traitement de chaque requête
 @app.before_request
-def authenticate_user():
-    """Authentifie un utilisateur avant de traiter une requête.
-    
-    Vérifie si une authentification est requise pour la route demandée.
-    Si l'utilisateur n'est pas authentifié
-    correctement, il renvoie une erreur 401 ou 403.
+def authenticate_before_request():
+    """Authentifie un utilisateur
+    avant le traitement d'une requête.
     """
     if auth:
-        # Définir les chemins exclus de l'authentification
-        excluded_paths = [
-            "/api/v1/status/",
-            "/api/v1/unauthorized/",
-            "/api/v1/forbidden/",
-            "/api/v1/auth_session/login/",
-        ]
-        # Vérifie si l'authentification est requise pour la route demandée
-        if auth.require_auth(request.path, excluded_paths):
-            user = auth.current_user(request)
-            # Vérifie si l'en-tête d'autorisation
-            # et le cookie de session sont présents
-            # Renvoie une erreur 401 si aucune
-            # authentification n'est trouvée
-            if auth.authorization_header(request) is None and \
-                    auth.session_cookie(request) is None:
+        # Liste des chemins d'URL exclus de l'authentification
+        chemins_exclus = ['/api/v1/status/',
+                          '/api/v1/unauthorized/', '/api/v1/forbidden/',
+                          ]
+        # Vérifie si le chemin de la requête
+        # nécessite une authentification
+        if auth.require_auth(request.path, chemins_exclus):
+            # Récupère l'en-tête d'autorisation de la requête
+            en_tete = auth.authorization_header(request)
+            # Récupère l'utilisateur actuel basé sur la requête
+            utilisateur = auth.current_user(request)
+            # Si l'en-tête d'autorisation est
+            # manquant, retourne une erreur 401
+            if en_tete is None:
                 abort(401)
-            # Renvoie une erreur 403 si l'utilisateur n'est pas autorisé
-            if user is None:
+            # Si l'utilisateur est non identifié,
+            # retourne une erreur 403
+            if utilisateur is None:
                 abort(403)
-            # Ajoute l'utilisateur courant à la requête
-            request.current_user = user
 
 
+# Exécution de l'application Flask
 if __name__ == "__main__":
-    # Obtient les informations de configuration pour l'hôte
-    # et le port depuis les variables d'environnement
+    # Récupération de l'hôte et du port depuis les variables
+    # d'environnement, avec des valeurs par défaut
     host = getenv("API_HOST", "0.0.0.0")
     port = getenv("API_PORT", "5000")
-    # Démarre l'application Flask
+    # Lancement de l'application sur l'hôte et le port spécifiés
     app.run(host=host, port=port)
