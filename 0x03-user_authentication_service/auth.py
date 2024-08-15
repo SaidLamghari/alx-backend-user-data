@@ -136,10 +136,10 @@ class Auth:
             varuser = self._db.find_user_by(email=email)
         except NoResultFound:
             return None  # Retourne None si l'utilisateur n'est pas trouvé
-        sessid = _generate_uuid  # Génère un UUID pour la session
+        session_id = _generate_uuid  # Génère un UUID pour la session
         # Met à jour l'utilisateur avec le nouvel ID de session
-        self._db.update_user(varuser.id, session_id=sessid)
-        return sessid
+        self._db.update_user(varuser.id, session_id=session_id)
+        return session_id
 
     def get_user_from_session_id(self,
                                  session_id: str) -> Union[User, None]:
