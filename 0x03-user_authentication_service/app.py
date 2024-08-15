@@ -36,7 +36,7 @@ def index_home() -> str:
 
 @app.route("/users", methods=["POST"],
            strict_slashes=False)
-def for_register_user() -> str:
+def register_user() -> str:
     """
     Route pour l'inscription des utilisateurs (POST /users)
 
@@ -64,7 +64,7 @@ def for_register_user() -> str:
 
 @app.route("/sessions", methods=["POST"],
            strict_slashes=False)
-def for_login() -> str:
+def login() -> str:
     """
     Route pour la connexion des utilisateurs (POST /sessions)
 
@@ -97,7 +97,7 @@ def for_login() -> str:
 
 @app.route("/sessions",
            methods=["DELETE"], strict_slashes=False)
-def for_logout() -> str:
+def logout() -> str:
     """
     Route pour la déconnexion des utilisateurs (DELETE /sessions)
 
@@ -150,7 +150,7 @@ def profile() -> str:
 
 @app.route("/reset_password",
            methods=["POST"], strict_slashes=False)
-def for_get_reset_password_token() -> str:
+def get_reset_password_token() -> str:
     """
     Route pour obtenir un jeton de réinitialisation
     de mot de passe (POST /reset_password)
@@ -184,7 +184,7 @@ def for_get_reset_password_token() -> str:
 
 @app.route("/reset_password",
            methods=["PUT"], strict_slashes=False)
-def for_update_password() -> str:
+def update_password() -> str:
     """
     Route pour mettre à jour le mot de passe
     d'un utilisateur (PUT /reset_password)
