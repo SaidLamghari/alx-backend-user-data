@@ -14,6 +14,14 @@ from sqlalchemy.orm.exc import NoResultFound
 from db import DB
 
 
+def _generate_uuid() -> str:
+    """
+    9. Generate UUIDs
+    _generate_uuid function in the auth module
+    """
+    return str(uuid4())
+
+
 def _hash_password(pssword: str) -> bytes:
     """
     Hache un mot de
@@ -27,7 +35,8 @@ def _hash_password(pssword: str) -> bytes:
         - bytes: Le mot de passe
         haché sous forme de bytes.
     """
-    return bcrypt.hashpw(pssword.encode("utf-8"), bcrypt.gensalt())
+    return bcrypt.hashpw(pssword.encode("utf-8"),
+                         bcrypt.gensalt())
 
 
 class Auth:
@@ -127,12 +136,13 @@ class Auth:
             varuser = self._db.find_user_by(email=email)
         except NoResultFound:
             return None  # Retourne None si l'utilisateur n'est pas trouvé
-        sessid = str(uuid4())  # Génère un UUID pour la session
+        sessid = _generate_uuid  # Génère un UUID pour la session
         # Met à jour l'utilisateur avec le nouvel ID de session
         self._db.update_user(varuser.id, session_id=sessid)
         return sessid
 
-    def get_user_from_session_id(self, session_id: str) -> Union[User, None]:
+    def get_user_from_session_id(self,
+                                 session_id: str) -> Union[User, None]:
         """
         Récupère un utilisateur basé sur un ID de session donné.
 
@@ -196,12 +206,13 @@ class Auth:
             # Lève une exception si aucun utilisateur n'est trouvé
             raise ValueError("User not found")
         # Génère un UUID pour la réinitialisation
-        resetoken = str(uuid4())
+        resetoken = _generate_uuid
         # Met à jour l'utilisateur avec le nouveau jeton
         self._db.update_user(varuser.id, reset_token=resetoken)
         return resetoken
 
-    def update_password(self, reset_token: str, password: str) -> None:
+    def update_password(self, reset_token: str,
+                        password: str) -> None:
         """
         Met à jour le mot de passe d'un utilisateur
         donné un jeton de réinitialisation valide.
