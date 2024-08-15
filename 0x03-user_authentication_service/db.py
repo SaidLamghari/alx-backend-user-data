@@ -6,7 +6,6 @@ liées aux utilisateurs à l'aide de SQLAlchemy.
 Il permet d'ajouter, de rechercher,
 et de mettre à jour des utilisateurs
 dans une base de données SQLite.
-Auteur SAID LAMGHARI
 """
 from user import User
 from sqlalchemy import create_engine, tuple_
@@ -117,16 +116,16 @@ class DB:
             - NoResultFound: Si aucun
             utilisateur ne correspond aux filtres.
         """
-        fields, values = [], []
+        chps, vls = [], []
         for ky, value in kwargs.items():
             if hasattr(User, ky):
-                fields.append(getattr(User, ky))
-                values.append(value)
+                chps.append(getattr(User, ky))
+                vls.append(value)
             else:
                 # Lève une exception si la clé n'est pas un attribut valide
                 raise InvalidRequestError()
         rslt = self._session.query(User).filter(
-            tuple_(*fields).in_([tuple(values)])
+            tuple_(*chps).in_([tuple(vls)])
         ).first()
         # Recherche le premier utilisateur correspondant aux filtres
         if rslt is None:
