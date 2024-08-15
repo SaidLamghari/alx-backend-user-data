@@ -43,7 +43,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
 
     # Colonne pour l'adresse email de l'utilisateur, doit être unique
-    email = Column(String(250), nullable=False, unique=True)
+    email = Column(String(250), nullable=False)
 
     # Colonne pour le mot de passe haché de l'utilisateur
     hashed_password = Column(String(250), nullable=False)
