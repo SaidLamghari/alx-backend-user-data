@@ -124,7 +124,7 @@ def for_logout() -> str:
 
 @app.route("/profile",
            methods=["GET"], strict_slashes=False)
-def for_profile() -> str:
+def profile() -> str:
     """
     Route pour récupérer le profil de
     l'utilisateur connecté (GET /profile)
