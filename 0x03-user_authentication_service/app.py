@@ -110,14 +110,14 @@ def logout() -> str:
         ou une erreur 403 si la session est invalide.
     """
     session_id = request.cookies.get("session_id")
-    varusr = AUTH.get_user_from_session_id(session_id)
+    user = AUTH.get_user_from_session_id(session_id)
 
-    if varusr is None:
+    if user is None:
         # Retourne une erreur 403 si la session est invalide
         abort(403)
 
     # Destruction de la session de l'utilisateur
-    AUTH.destroy_session(varusr.id)
+    AUTH.destroy_session(user.id)
 
     return redirect("/")
 
