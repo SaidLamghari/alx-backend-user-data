@@ -1,201 +1,221 @@
 #!/usr/bin/env python3
 """
-Ce module définit les routes principales
-de l'application Flask pour
-la gestion de l'authentification des utilisateurs.
+Ce module implémente une application Flask simple avec
+des fonctionnalités d'authentification utilisateur.
+Il permet de gérer l'inscription, la connexion,
+la déconnexion, la récupération de profil,
+et la réinitialisation du mot de passe pour les utilisateurs.
+Auteur SAID LAMGHARI
 """
 
-from flask import Flask, request, jsonify, abort, redirect
+from flask import Flask, jsonify, request
+from flask import redirect
+from flask import redirect
 from auth import Auth
 
+# Initialisation de l'application Flask
 app = Flask(__name__)
+
+# Création d'une instance de la classe
+# Auth pour gérer les opérations d'authentification
 AUTH = Auth()
 
 
-@app.route("/", methods=["GET"])
-def index() -> str:
+@app.route("/", methods=["GET"],
+           strict_slashes=False)
+def index_home() -> str:
     """
-    Route pour la page d'accueil.
+    Route d'accueil (GET /)
+    Retourne un message de bienvenue.
 
-    Cette route répond à une requête GET
-    à la racine ("/") de l'application web.
-    Elle renvoie un objet JSON contenant un message de bienvenue.
-
-    Notes:
-        - Le paramètre `strict_slashes=False` dans le décorateur
-        de route permet d'accéder à la page d'accueil
-        avec ou sans barre oblique finale.
-        - La fonction utilise `jsonify`
-        pour formater la réponse en JSON.
+    Retour:
+        - JSON contenant le message de bienvenue.
     """
     return jsonify({"message": "Bienvenue"})
 
 
-@app.route('/users', methods=['POST'])
+@app.route("/users", methods=["POST"],
+           strict_slashes=False)
 def for_register_user() -> str:
     """
-    Enregistre un nouvel utilisateur avec l'email
-    et le mot de passe fournis.
+    Route pour l'inscription des utilisateurs (POST /users)
 
-    Reçoit les données utilisateur dans le corps
-    de la requête POST sous la forme de
-    'email' et 'password'. Si l'email est déjà
-    enregistré, retourne un message d'erreur
-    avec un code de statut HTTP 400.
-    Sinon, crée un nouvel utilisateur et retourne
-    les détails de l'utilisateur avec un message de succès.
+    Cette route permet à un utilisateur de créer un
+    compte en fournissant un email et un mot de passe.
+    Si l'email est déjà enregistré, une erreur est retournée.
 
-    :return: Une réponse JSON contenant
-            l'email et un message indiquant si
-            l'utilisateur a été créé ou
-            si l'email est déjà enregistré.
+    Retour:
+        - JSON confirmant la création du compte ou un
+        message d'erreur si l'email est déjà enregistré.
     """
-    email = request.form.get('email')
-    password = request.form.get('password')
+    email = request.form.get("email")
+    pssword = request.form.get("password")
+
     try:
-        user = AUTH.register_user(email, password)
-        return jsonify({"email": user.email, "message": "user created"})
-        # return jsonify({"email": user.email, "message": "utilisateur créé"})
+        # Tentative d'inscription de l'utilisateur
+        # avec l'email et le mot de passe fournis
+        AUTH.register_user(email, pssword)
+        return jsonify({"email": email, "message": "user created"})
     except ValueError:
+        # Si l'email est déjà enregistré, retourner
+        # une erreur 400 avec un message d'avertissement
         return jsonify({"message": "email already registered"}), 400
-        # return jsonify({"message": "email déjà enregistré"}), 400
 
 
-@app.route('/sessions', methods=['POST'])
+@app.route("/sessions", methods=["POST"],
+           strict_slashes=False)
 def for_login() -> str:
     """
-    Connecte un utilisateur avec
-    un email et un mot de passe fournis.
+    Route pour la connexion des utilisateurs (POST /sessions)
 
-    Reçoit les données de connexion dans
-    le corps de la requête POST sous la forme
-    de 'email' et 'password'. Si les informations
-    sont valides, crée une session pour
-    l'utilisateur et retourne une réponse
-    JSON avec l'email et un message de succès,
-    ainsi qu'un cookie de session.
-    Si les informations sont incorrectes, retourne une
-    erreur HTTP 401.
+    Cette route permet à un utilisateur de se connecter
+    en fournissant un email et un mot de passe valides.
+    Si les informations de connexion sont correctes, une
+    session est créée et un cookie de session est défini.
 
-    :return: Une réponse JSON contenant l'email
-            et un message de succès si la connexion
-            est réussie, sinon une erreur HTTP 401.
+    Retour:
+        - JSON confirmant la connexion ou une erreur
+        401 si les informations sont incorrectes.
     """
-    email = request.form.get('email')
-    password = request.form.get('password')
-    if AUTH.valid_login(email, password):
-        session_id = AUTH.create_session(email)
-        # response = jsonify({"email": email, "message": "connexion réussie"})
-        rspnse = jsonify({"email": email, "message": "logged in"})
-        rspnse.set_cookie("session_id", session_id)
-        return rspnse
-    else:
+    email = request.form.get("email")
+    pssword = request.form.get("password")
+
+    # Vérification des informations de connexion
+    if not AUTH.valid_login(email, pssword):
+        # Retourne une erreur 401 si l'email
+        # ou le mot de passe est incorrect
         abort(401)
 
+    # Création d'une session pour l'utilisateur
+    # et définition d'un cookie de session
+    session_id = AUTH.create_session(email)
+    rspnse = jsonify({"email": email, "message": "logged in"})
+    rspnse.set_cookie("session_id", session_id)
 
-@app.route('/sessions', methods=['DELETE'])
+    return rspnse
+
+
+@app.route("/sessions",
+           methods=["DELETE"], strict_slashes=False)
 def for_logout() -> str:
     """
-    Déconnecte un utilisateur en détruisant la session active.
+    Route pour la déconnexion des utilisateurs (DELETE /sessions)
 
-    Reçoit le cookie de session de la requête
-    et utilise l'ID de session pour trouver
-    l'utilisateur. Si l'utilisateur est trouvé,
-    la session est détruite et l'utilisateur
-    est redirigé vers la page d'accueil.
-    Sinon, retourne une erreur HTTP 403.
+    Cette route permet à un utilisateur de
+    se déconnecter en détruisant sa session actuelle.
+    Si la session est invalide, une erreur 403 est retournée.
 
-    :return: Une redirection vers la page d'accueil
-            si la déconnexion est réussie,
-            sinon une erreur HTTP 403.
+    Retour:
+        - Redirection vers la page d'accueil après déconnexion
+        ou une erreur 403 si la session est invalide.
     """
-    session_id = request.cookies.get('session_id')
-    user = AUTH.get_user_from_session_id(session_id)
-    if user:
-        AUTH.destroy_session(user.id)
-        return redirect('/')
-    else:
+    session_id = request.cookies.get("session_id")
+    varusr = AUTH.get_user_from_session_id(session_id)
+
+    if varusr is None:
+        # Retourne une erreur 403 si la session est invalide
         abort(403)
 
+    # Destruction de la session de l'utilisateur
+    AUTH.destroy_session(varusr.id)
 
-@app.route('/profile', methods=['GET'])
+    return redirect("/")
+
+
+@app.route("/profile",
+           methods=["GET"], strict_slashes=False)
 def for_profile() -> str:
     """
-    Récupère le profil de l'utilisateur connecté.
+    Route pour récupérer le profil de
+    l'utilisateur connecté (GET /profile)
 
-    Utilise le cookie de session pour trouver
-    l'utilisateur. Si la session est valide,
-    retourne l'email de l'utilisateur sous forme
-    de réponse JSON. Sinon, retourne une
-    erreur HTTP 403.
+    Cette route retourne l'email de
+    l'utilisateur associé à la session actuelle.
+    Si la session est invalide,
+    une erreur 403 est retournée.
 
-    :return: Une réponse JSON contenant l'email
-            de l'utilisateur si la session est
-            valide, sinon une erreur HTTP 403.
+    Retour:
+        - JSON contenant l'email de l'utilisateur
+        ou une erreur 403 si la session est invalide.
     """
-    session_id = request.cookies.get('session_id')
-    user = AUTH.get_user_from_session_id(session_id)
-    if user:
-        return jsonify({"email": user.email})
-    else:
+    session_id = request.cookies.get("session_id")
+    varuser = AUTH.get_user_from_session_id(session_id)
+
+    if varuser is None:
+        # Retourne une erreur 403 si la session est invalide
         abort(403)
 
+    return jsonify({"email": varuser.email})
 
-@app.route('/reset_password', methods=['POST'])
-def get_reset_password_token() -> str:
+
+@app.route("/reset_password",
+           methods=["POST"], strict_slashes=False)
+def for_get_reset_password_token() -> str:
     """
-    Génère un token de réinitialisation de
-    mot de passe pour un utilisateur.
+    Route pour obtenir un jeton de réinitialisation
+    de mot de passe (POST /reset_password)
 
-    Reçoit l'email de l'utilisateur dans le
-    corps de la requête POST. Si l'email est
-    valide, un token de réinitialisation est
-    généré et retourné sous forme de réponse
-    JSON. Si l'email n'est pas valide,
-    retourne une erreur HTTP 403.
+    Cette route génère un jeton de réinitialisation
+    pour l'utilisateur associé à l'email fourni.
+    Si l'email n'est pas enregistré, une erreur 403 est retournée.
 
-    :return: Une réponse JSON contenant
-            l'email et le token de réinitialisation si
-            l'email est valide, sinon une erreur HTTP 403.
+    Retour:
+        - JSON contenant l'email de l'utilisateur
+        et le jeton de réinitialisation,
+          ou une erreur 403 si l'email
+          n'est pas enregistré.
     """
-    email = request.form.get('email')
+    email = request.form.get("email")
+    resetoken = None
+
     try:
-        reset_token = AUTH.get_reset_password_token(email)
-        return jsonify({"email": email, "reset_token": reset_token})
+        # Tentative de génération d'un jeton
+        # de réinitialisation pour l'utilisateur
+        resetoken = AUTH.get_reset_password_token(email)
     except ValueError:
+        resetoken = None
+
+    if resetoken is None:
+        # Retourne une erreur 403 si l'email n'est pas enregistré
         abort(403)
 
+    return jsonify({"email": email, "reset_token": resetoken})
 
-@app.route('/reset_password', methods=['PUT'])
-def update_password() -> str:
+
+@app.route("/reset_password",
+           methods=["PUT"], strict_slashes=False)
+def for_update_password() -> str:
     """
-    Met à jour le mot de passe d'un utilisateur
-    en utilisant un token de réinitialisation.
+    Route pour mettre à jour le mot de passe
+    d'un utilisateur (PUT /reset_password)
 
-    Reçoit l'email de l'utilisateur, le token de
-    réinitialisation, et le nouveau mot de
-    passe dans le corps de la requête PUT.
-    Si le token est valide, le mot de passe est
-    mis à jour et une réponse JSON de succès
-    est retournée. Sinon, retourne une erreur
-    HTTP 403.
+    Cette route permet de mettre à jour le mot de passe
+    de l'utilisateur en utilisant le jeton de réinitialisation.
+    Si le jeton est invalide, une erreur 403 est retournée.
 
-    :return: Une réponse JSON contenant l'email
-            et un message de succès si le mot de
-            passe est mis à jour avec succès,
-            sinon une erreur HTTP 403.
+    Retour:
+        - JSON confirmant la mise à jour du mot de
+        passe ou une erreur 403 si le jeton est invalide.
     """
-    email = request.form.get('email')
-    reset_token = request.form.get('reset_token')
-    new_password = request.form.get('new_password')
+    email = request.form.get("email")
+    resetoken = request.form.get("reset_token")
+    nwpassword = request.form.get("new_password")
+    passwordchanged = False
+
     try:
-        AUTH.update_password(reset_token, new_password)
-        # return jsonify({"email": email, "message":
-        # "Mot de passe mis à jour"})
-        return jsonify({"email": email, "message": "Password updated"})
+        # Tentative de mise à jour du mot de passe de l'utilisateur
+        AUTH.update_password(resetoken, nwpassword)
+        passwordchanged = True
     except ValueError:
+        passwordchanged = False
+
+    if not passwordchanged:
+        # Retourne une erreur 403 si le jeton est invalide
         abort(403)
+
+    return jsonify({"email": email, "message": "Password updated"})
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # Démarrage de l'application Flask sur le port 5000
+    app.run(host="0.0.0.0", port="5000")
