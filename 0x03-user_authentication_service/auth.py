@@ -14,7 +14,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from db import DB
 
 
-def passwordforhash(pssword: str) -> bytes:
+def _hash_password(pssword: str) -> bytes:
     """
     Hache un mot de
     passe en utilisant bcrypt.
@@ -78,7 +78,7 @@ class Auth:
             self._db.find_user_by(email=email)
         except NoResultFound:
             # Ajoute l'utilisateur si non trouvé
-            return self._db.add_user(email, passwordforhash(password))
+            return self._db.add_user(email, _hash_password(password))
         # Lève une exception si l'utilisateur existe déjà
         raise ValueError(f"User {email} already exists")
 
@@ -227,7 +227,7 @@ class Auth:
             # Lève une exception si le jeton est invalide
             raise ValueError("Invalid reset token")
         # Hache le nouveau mot de passe
-        nwpsswordforhash = passwordforhash(password)
+        nwpsswordforhash = _hash_password(password)
         self._db.update_user(
             user.id,
             hashed_password=nwpsswordforhash,
